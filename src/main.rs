@@ -1,12 +1,15 @@
 use teloxide::prelude::*;
 
-mod handlers;
+mod commands;
+mod helpers;
+mod structs;
 
-use crate::handlers::{callback_handler, message_handler};
+use crate::commands::callback::callback_handler;
+use crate::commands::text::message_handler;
 
 #[tokio::main]
 async fn main() {
-    let bot = Bot::new("");
+    let bot = Bot::new("5636771268:AAFF1qdkZi4QDf5Hj209-xopNbITCseR75c");
     let handler = dptree::entry()
         .branch(Update::filter_message().endpoint(message_handler))
         .branch(Update::filter_callback_query().endpoint(callback_handler));
