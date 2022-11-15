@@ -1,30 +1,40 @@
-use crate::structs::{SearchResult, SuggestCallback};
+use crate::structs::{search_result::SearchResult, SuggestCallback};
 
 use serde_json::to_string;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 pub fn make_keyboard(res: SearchResult) -> InlineKeyboardMarkup {
-    let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![];
+    let keyboard = res
+        .body
+        .suggests
+        .into_iter()
+        .map(|x| {
+            vec![InlineKeyboardButton::callback(
+                x.text.to_owned(),
+                to_string(&SuggestCallback {
+                    cmd: "search".to_string(),
+                    package: x.package_name.to_string(),
+                })
+                .unwrap(),
+            )]
+        })
+        .collect::<Vec<_>>();
 
-    for x in res.body.suggests {
-        keyboard.push(vec![InlineKeyboardButton::callback(
-            x.text.to_owned(),
-            to_string(&SuggestCallback {
-                cmd: "search".to_string(),
-                package: x.package_name.to_string(),
-            })
-            .unwrap(),
-        )]);
-    }
     println!("{:?}", keyboard);
     InlineKeyboardMarkup::new(keyboard)
 }
-pub fn bytes_to_size(bytes: f64) -> String {
-    let units = ["байт", "КБ", "МБ", "ГБ", "ТБ"];
-    let unit = bytes.log(1024_f64).floor() as u32;
-    println!("{}", unit);
-    format!(
-        "{} {}",
-        (bytes as i64 / i64::pow(1024, unit as u32)),
-        (units[unit as usize])
-    )
+const SUFFIX: [&str; 5] = ["байт", "КБ", "МБ", "ГБ", "ТБ"];
+const UNIT: f64 = 1024.0;
+
+pub fn format_bytes(bytes: f64) -> String {
+    if bytes <= 0.0 {
+        return "0 байт".to_owned();
+    }
+
+    let base = bytes.log10() / UNIT.log10();
+
+    let num = format!("{:.1}", UNIT.powf(base - base.floor()))
+        .trim_end_matches(".0")
+        .to_owned();
+
+    format!("{} {}", num, SUFFIX[base.floor() as usize])
 }

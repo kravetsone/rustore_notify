@@ -5,8 +5,8 @@ use teloxide::{
     types::{InlineKeyboardButton, InlineKeyboardMarkup, InputFile},
 };
 
-use crate::helpers::bytes_to_size;
-use crate::structs::{GetAppResult, SuggestCallback};
+use crate::helpers::format_bytes;
+use crate::structs::{app_info::GetAppResult, SuggestCallback};
 
 pub async fn search(
     bot: Bot,
@@ -22,6 +22,7 @@ pub async fn search(
         .await?
         .json::<GetAppResult>()
         .await?;
+        let can_upload: bool = res.body.file_size < 52_428_800;
 
         bot.edit_message_text(
             chat.id,
@@ -31,7 +32,7 @@ pub async fn search(
                 res.body.app_name,
                 cmd_data.package,
                 res.body.version_name,
-                (if res.body.file_size < 52_428_800 {
+                (if can_upload {
                     "Ожидайте загрузки apk-файла в телеграм..."
                 } else {
                     ""
@@ -40,7 +41,7 @@ pub async fn search(
         )
         .reply_markup(InlineKeyboardMarkup::new(vec![vec![
             InlineKeyboardButton::url(
-                format!("Скачать ({})", bytes_to_size(res.body.file_size as f64)),
+                format!("Скачать ({})", format_bytes(res.body.file_size as f64)),
                 reqwest::Url::parse(
                     ("https://static.rustore.ru/".to_owned() + &res.body.apk_uid).as_str(),
                 )
@@ -49,7 +50,7 @@ pub async fn search(
         ]]))
         .await?;
 
-        if res.body.file_size < 52_428_800 {
+        if can_upload {
             println!("меньше 50 мб можно грузить");
             let body = reqwest::get(
                 ("https://static.rustore.ru/".to_owned() + &res.body.apk_uid).as_str(),
@@ -57,6 +58,7 @@ pub async fn search(
             .await?
             .bytes()
             .await?;
+
             bot.send_document(
                 chat.id,
                 InputFile::memory(body)

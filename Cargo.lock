@@ -836,6 +836,7 @@ dependencies = [
 name = "rustore_notify"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "regex",
  "reqwest",
  "serde",
